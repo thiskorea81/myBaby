@@ -4,7 +4,7 @@ import axios from 'axios';
 const pinia = createPinia();
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_APP_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,38 +22,63 @@ export const useAuthStore = defineStore('auth', {
   }),
   actions: {
     async login(username, password) {
-      if (username === 'admin' && password === 'admin') {
-        this.user = { username };
+      try {
+        console.log('Attempting to log in with:', { username, password });
+        const response = await apiClient.post('/api/login', { username, password });
+        console.log('Login response:', response.data);
+        this.user = response.data;
         return true;
+      } catch (error) {
+        console.error('Login failed:', error);
+        return false;
       }
-      return false;
+    },
+    logout() {
+      this.user = null;
     },
     async fetchRecords() {
-      const response = await apiClient.get('/records');
-      this.records = response.data.map(record => ({
-        ...record,
-        date: new Date(record.date),
-      }));
+      try {
+        const response = await apiClient.get('/api/records');
+        this.records = Array.isArray(response.data) ? response.data.map(record => ({
+          ...record,
+          date: new Date(record.date),
+        })) : [];
+      } catch (error) {
+        console.error('Error fetching records:', error);
+      }
     },
     async addRecord(type, details = '') {
       const now = new Date();
       const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
       const newRecord = { type, details, time, date: this.currentDate };
-      const response = await apiClient.post('/records', newRecord);
-      newRecord.id = response.data;
-      this.records.push(newRecord);
+      try {
+        const response = await apiClient.post('/api/records', newRecord);
+        newRecord._id = response.data;
+        this.records.push(newRecord);
+      } catch (error) {
+        console.error('Error adding record:', error);
+      }
     },
     async updateRecord(id, newType, newDetails) {
-      const record = this.records.find(record => record.id === id);
+      const record = this.records.find(record => record._id === id);
       if (record) {
         const updatedRecord = { ...record, type: newType, details: newDetails };
-        await apiClient.put(`/records/${id}`, updatedRecord);
-        Object.assign(record, updatedRecord);
+        try {
+          const response = await apiClient.put(`/api/records/${id}`, updatedRecord);
+          console.log('Update response:', response.data);
+          Object.assign(record, updatedRecord);
+        } catch (error) {
+          console.error('Error updating record:', error);
+        }
       }
     },
     async deleteRecord(id) {
-      await apiClient.delete(`/records/${id}`);
-      this.records = this.records.filter(record => record.id !== id);
+      try {
+        await apiClient.delete(`/api/records/${id}`);
+        this.records = this.records.filter(record => record._id !== id);
+      } catch (error) {
+        console.error('Error deleting record:', error);
+      }
     },
     setDate(newDate) {
       this.currentDate = newDate;
@@ -63,7 +88,7 @@ export const useAuthStore = defineStore('auth', {
       newDate.setDate(newDate.getDate() + days);
       this.currentDate = newDate;
     },
-    async addWakeRecord() {
+    addWakeRecord() {
       const now = new Date();
       const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
       const sleepRecord = this.records.slice().reverse().find(record => record.type === '취침' && record.date.toDateString() === this.currentDate.toDateString());
@@ -77,13 +102,9 @@ export const useAuthStore = defineStore('auth', {
         const duration = ((wakeTime - sleepTime) / 1000 / 60 / 60).toFixed(2); // 수면 시간 계산 (시간 단위)
 
         const newRecord = { type: `기상 (수면 시간: ${duration} 시간)`, time, date: this.currentDate };
-        const response = await apiClient.post('/records', newRecord);
-        newRecord.id = response.data;
         this.records.push(newRecord);
       } else {
         const newRecord = { type: '기상', time, date: this.currentDate };
-        const response = await apiClient.post('/records', newRecord);
-        newRecord.id = response.data;
         this.records.push(newRecord);
       }
     },

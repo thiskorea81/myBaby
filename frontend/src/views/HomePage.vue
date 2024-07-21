@@ -22,10 +22,10 @@
     <div class="section records">
       <h2>기록</h2>
       <ul>
-        <li v-for="record in authStore.filteredRecords" :key="record.id">
+        <li v-for="record in authStore.filteredRecords" :key="record._id">
           <span>{{ record.time }} - {{ record.type }} {{ record.details }}</span>
-          <ActionButton label="수정" :onClick="() => editRecord(record.id, record.type, record.details)" />
-          <ActionButton label="삭제" :onClick="() => deleteRecord(record.id)" />
+          <ActionButton label="수정" :onClick="() => editRecord(record._id, record.type, record.details)" />
+          <ActionButton label="삭제" :onClick="() => deleteRecord(record._id)" />
         </li>
       </ul>
     </div>
@@ -33,10 +33,7 @@
       <AIPrediction />
     </div>
     <div class="section footer">
-      <footer>
-        <router-link to="/">홈</router-link> |
-        <router-link to="/signup">회원가입</router-link>
-      </footer>
+      <Footer />
     </div>
 
     <!-- 모유수유 입력 다이얼로그 -->
@@ -70,12 +67,14 @@ import { ref, computed, onMounted } from 'vue';
 import '@/assets/main.css';
 import ActionButton from '@/components/ActionButton.vue';
 import AIPrediction from '@/components/AIPrediction.vue';
+import Footer from '@/components/Footer.vue';
 
 export default {
   name: 'HomePage',
   components: {
     ActionButton,
-    AIPrediction
+    AIPrediction,
+    Footer,
   },
   setup() {
     const authStore = useAuthStore();
@@ -136,9 +135,10 @@ export default {
       }
     };
 
-    const deleteRecord = (id) => {
+    const deleteRecord = async (id) => {
       if (confirm('정말 삭제하시겠습니까?')) {
-        authStore.deleteRecord(id);
+        await authStore.deleteRecord(id);
+        await authStore.fetchRecords();  // 최신 데이터 다시 가져오기
       }
     };
 
