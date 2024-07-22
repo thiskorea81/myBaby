@@ -5,7 +5,8 @@ const pinia = createPinia();
 
 const apiClient = axios.create({
   // baseURL: import.meta.env.VITE_APP_API_URL,
-  baseURL: 'http://3.35.205.25:5000',
+  // baseURL: 'http://3.35.205.25:5000',
+  baseURL: 'http://localhost',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -25,7 +26,7 @@ export const useAuthStore = defineStore('auth', {
     async login(username, password) {
       try {
         console.log('Attempting to log in with:', { username, password });
-        const response = await apiClient.post('/api/login', { username, password });
+        const response = await apiClient.post('/login', { username, password });
         console.log('Login response:', response.data);
         this.user = response.data;
         return true;
@@ -39,7 +40,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async fetchRecords() {
       try {
-        const response = await apiClient.get('/api/records');
+        const response = await apiClient.get('/records');
         this.records = Array.isArray(response.data) ? response.data.map(record => ({
           ...record,
           date: new Date(record.date),
@@ -53,7 +54,7 @@ export const useAuthStore = defineStore('auth', {
       const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
       const newRecord = { type, details, time, date: this.currentDate };
       try {
-        const response = await apiClient.post('/api/records', newRecord);
+        const response = await apiClient.post('/records', newRecord);
         newRecord._id = response.data;
         this.records.push(newRecord);
       } catch (error) {
@@ -65,7 +66,7 @@ export const useAuthStore = defineStore('auth', {
       if (record) {
         const updatedRecord = { ...record, type: newType, details: newDetails };
         try {
-          const response = await apiClient.put(`/api/records/${id}`, updatedRecord);
+          const response = await apiClient.put(`/records/${id}`, updatedRecord);
           console.log('Update response:', response.data);
           Object.assign(record, updatedRecord);
         } catch (error) {
@@ -75,7 +76,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async deleteRecord(id) {
       try {
-        await apiClient.delete(`/api/records/${id}`);
+        await apiClient.delete(`/records/${id}`);
         this.records = this.records.filter(record => record._id !== id);
       } catch (error) {
         console.error('Error deleting record:', error);

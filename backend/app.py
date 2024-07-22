@@ -11,7 +11,7 @@ import logging
 load_dotenv()  # .env 파일에서 환경 변수 로드
 
 app = Flask(__name__)
-CORS(app)
+# CORS(app)
 
 # MongoDB 연결 설정
 mongo_client = MongoClient(os.getenv("MONGODB_URI"), server_api=ServerApi('1'))
@@ -23,31 +23,31 @@ client = OpenAI()  # .env 파일에서 환경 변수 OPENAI_API_KEY 로드
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 
-@app.route('/api/records', methods=['GET'])
+@app.route('/records', methods=['GET'])
 def get_records():
     records = list(records_collection.find())
     for record in records:
         record['_id'] = str(record['_id'])
     return jsonify(records)
 
-@app.route('/api/records', methods=['POST'])
+@app.route('/records', methods=['POST'])
 def add_record():
     data = request.json
     record_id = records_collection.insert_one(data).inserted_id
     return jsonify(str(record_id)), 201
 
-@app.route('/api/records/<record_id>', methods=['PUT'])
+@app.route('/records/<record_id>', methods=['PUT'])
 def update_record(record_id):
     data = request.json
     records_collection.update_one({'_id': ObjectId(record_id)}, {'$set': data})
     return jsonify({'msg': 'Record updated'})
 
-@app.route('/api/records/<record_id>', methods=['DELETE'])
+@app.route('/records/<record_id>', methods=['DELETE'])
 def delete_record(record_id):
     records_collection.delete_one({'_id': ObjectId(record_id)})
     return jsonify({'msg': 'Record deleted'})
 
-@app.route('/api/predict', methods=['POST'])
+@app.route('/predict', methods=['POST'])
 def predict():
     data = request.json
     user_input = data.get('input', '')
